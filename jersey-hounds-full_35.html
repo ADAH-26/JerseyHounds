@@ -8,6 +8,7 @@
 <meta property="og:type" content="website">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Jersey Hound – World Cup 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style id="base-styles">
 :root{--accent:#c8ff00;--black:#0a0a0a;--white:#fff;--off:#f5f5f5;--gray:#888;--gl:#e0e0e0;--red:#e63946;--green:#237a23;--hero1:#0a1628;--hero2:#1a2d4a;--hero3:#0d3d2e;--mq-bg:#c8ff00;--ann-bg:#0a0a0a;--ann-color:#fff;--ann-ac:#c8ff00;--fh:'Montserrat',sans-serif;--fb:'Inter',sans-serif}
@@ -667,7 +668,193 @@ footer{background:var(--off);padding:36px 32px 18px;border-top:1px solid var(--g
   </div>
 </div>
 
-<script>
+<script>// ═══════════════════════════════════════════════════════════════════
+// SUPABASE CONFIG — paste your credentials here after setup
+// ═══════════════════════════════════════════════════════════════════
+var SB_URL = 'https://pwumambcbryoewunkdau.supabase.co';   // e.g. https://abc123.supabase.co
+var SB_KEY = 'sb_publishable_RZPGXvCgYrYibUrmHtfyAg_k0JlRpna';
+// ═══════════════════════════════════════════════════════════════════
+
+var _sb = null;
+var _sbReady = false;
+
+function sbInit() {
+  if (!SB_URL || SB_URL.includes('YOUR_')) return false;
+  try {
+    _sb = window.supabase.createClient(SB_URL, SB_KEY);
+    _sbReady = true;
+    return true;
+  } catch(e) { console.warn('Supabase init failed:', e); return false; }
+}
+
+// ── PRODUCTS ─────────────────────────────────────────────────────────────────
+async function sbLoadProducts() {
+  if (!_sbReady) return null;
+  try {
+    var res = await _sb.from('products').select('*').order('id');
+    if (res.error) throw res.error;
+    return res.data;
+  } catch(e) { console.warn('sbLoadProducts:', e); return null; }
+}
+
+async function sbSaveProduct(p) {
+  if (!_sbReady) return;
+  try {
+    await _sb.from('products').upsert({
+      id: p.id, title: p.t, category: p.cat,
+      price: String(p.p||'0'), was_price: String(p.w||''),
+      image: p.i||'', images: p.images||[],
+      stock: p.stock||'in', trending: !!p.trending,
+      visible: p.visible!==false, description: p.description||'',
+      extra_cats: p.extraCats||[], sale_percent: p.salePercent||0,
+      img_pos_x: p.imgPosX||50, img_pos_y: p.imgPosY||50,
+      img_scale: p.imgScale||100, img_fit: p.imgFit||'cover',
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+  } catch(e) { console.warn('sbSaveProduct:', e); }
+}
+
+async function sbSaveAllProducts(prods) {
+  if (!_sbReady) return;
+  try {
+    var rows = prods.map(function(p) { return {
+      id: p.id, title: p.t, category: p.cat,
+      price: String(p.p||'0'), was_price: String(p.w||''),
+      image: p.i||'', images: p.images||[],
+      stock: p.stock||'in', trending: !!p.trending,
+      visible: p.visible!==false, description: p.description||'',
+      extra_cats: p.extraCats||[], sale_percent: p.salePercent||0,
+      img_pos_x: p.imgPosX||50, img_pos_y: p.imgPosY||50,
+      img_scale: p.imgScale||100, img_fit: p.imgFit||'cover',
+      updated_at: new Date().toISOString()
+    };});
+    await _sb.from('products').upsert(rows, { onConflict: 'id' });
+  } catch(e) { console.warn('sbSaveAllProducts:', e); }
+}
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+async function sbLoadTheme() {
+  if (!_sbReady) return null;
+  try {
+    var res = await _sb.from('theme').select('config').eq('id',1).single();
+    if (res.error) throw res.error;
+    return res.data ? res.data.config : null;
+  } catch(e) { console.warn('sbLoadTheme:', e); return null; }
+}
+
+async function sbSaveTheme(config) {
+  if (!_sbReady) return;
+  try {
+    await _sb.from('theme').upsert({
+      id: 1, config: config, updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+  } catch(e) { console.warn('sbSaveTheme:', e); }
+}
+
+// ── BUNDLES ───────────────────────────────────────────────────────────────────
+async function sbLoadBundles() {
+  if (!_sbReady) return null;
+  try {
+    var res = await _sb.from('bundles').select('*').order('sort_order');
+    if (res.error) throw res.error;
+    return res.data;
+  } catch(e) { console.warn('sbLoadBundles:', e); return null; }
+}
+
+async function sbSaveBundles(bundles) {
+  if (!_sbReady) return;
+  try {
+    var rows = bundles.map(function(b,i) { return {
+      id: b.sb_id || undefined,
+      sort_order: i, nation: b.nation,
+      kit_data: b.kit, scarf_data: b.scarf, flag_data: b.flag,
+      stock: b.stock||'in', visible: b.visible!==false,
+      bundle_price: b.bundlePrice||120,
+      updated_at: new Date().toISOString()
+    };});
+    await _sb.from('bundles').upsert(rows, { onConflict: 'id' });
+  } catch(e) { console.warn('sbSaveBundles:', e); }
+}
+
+// ── Store: load from Supabase on startup ─────────────────────────────────────
+async function initSupabase() {
+  if (!sbInit()) return; // not configured yet
+
+  // Load theme
+  var theme = await sbLoadTheme();
+  if (theme && Object.keys(theme).length) {
+    localStorage.setItem('jh-theme', JSON.stringify(theme));
+    if (typeof applyTheme === 'function') applyTheme(theme);
+  }
+
+  // Load products
+  var prods = await sbLoadProducts();
+  if (prods && prods.length) {
+    prods.forEach(function(p) {
+      REGISTRY[p.id] = {
+        id: p.id, t: p.title, cat: p.category,
+        p: String(p.price||'0'), w: String(p.was_price||''),
+        i: p.image||'', images: p.images||[],
+        stock: p.stock||'in', trending: !!p.trending,
+        visible: p.visible!==false, description: p.description||'',
+        extraCats: p.extra_cats||[], salePercent: p.sale_percent||0,
+        imgPosX: p.img_pos_x||50, imgPosY: p.img_pos_y||50,
+        imgScale: p.img_scale||100, imgFit: p.img_fit||'cover'
+      };
+    });
+    if (typeof refreshAll === 'function') refreshAll();
+    if (typeof buildHeroSlides === 'function') buildHeroSlides(null);
+  }
+
+  // Load bundles
+  var buns = await sbLoadBundles();
+  if (buns && buns.length) {
+    buns.forEach(function(b, i) {
+      if (BUNDLES[i]) {
+        BUNDLES[i].stock = b.stock||'in';
+        BUNDLES[i].visible = b.visible!==false;
+        BUNDLES[i].bundlePrice = b.bundle_price||120;
+        BUNDLES[i].sb_id = b.id;
+      }
+    });
+    if (typeof renderBundles === 'function') renderBundles();
+  }
+
+  // Real-time: products change → refresh store
+  _sb.channel('store-products')
+    .on('postgres_changes', {event:'*', schema:'public', table:'products'},
+      function(payload) {
+        var p = payload.new;
+        if (!p || !p.id) { if (payload.old) delete REGISTRY[payload.old.id]; return; }
+        REGISTRY[p.id] = {
+          id:p.id, t:p.title, cat:p.category,
+          p:String(p.price||'0'), w:String(p.was_price||''),
+          i:p.image||'', images:p.images||[],
+          stock:p.stock||'in', trending:!!p.trending,
+          visible:p.visible!==false, description:p.description||'',
+          extraCats:p.extra_cats||[], salePercent:p.sale_percent||0,
+          imgPosX:p.img_pos_x||50, imgPosY:p.img_pos_y||50,
+          imgScale:p.img_scale||100, imgFit:p.img_fit||'cover'
+        };
+        if (typeof refreshAll === 'function') refreshAll();
+      })
+    .subscribe();
+
+  // Real-time: theme change → update appearance
+  _sb.channel('store-theme')
+    .on('postgres_changes', {event:'*', schema:'public', table:'theme'},
+      function(payload) {
+        var cfg = payload.new && payload.new.config;
+        if (cfg && typeof applyTheme === 'function') applyTheme(cfg);
+      })
+    .subscribe();
+}
+
+// Run Supabase init after page loads
+window.addEventListener('load', function() {
+  initSupabase().catch(function(e){ console.warn('Supabase init error:', e); });
+});
+
 'use strict';
 
 // ══════════════════════════════════════════════════════
