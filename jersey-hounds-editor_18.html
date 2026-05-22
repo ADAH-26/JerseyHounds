@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jersey Hound — Theme Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#1e1e1e;color:#111;height:100vh;overflow:hidden;display:flex;flex-direction:column;font-size:13px}
+/* TOP BAR */
+.top{height:46px;background:#111;display:flex;align-items:center;gap:10px;padding:0 14px;flex-shrink:0;border-bottom:1px solid #2a2a2a}
+.logo{font-family:'Montserrat',sans-serif;font-size:14px;font-weight:900;color:#fff}
+.logo em{color:#c8ff00;font-style:normal}
+.sep{width:1px;height:20px;background:#2a2a2a;flex-shrink:0}
+.vp-btns{display:flex;gap:3px}
+.vp{width:30px;height:26px;border:none;border-radius:5px;background:#222;color:#777;cursor:pointer;font-size:13px;transition:all .15s}
+.vp.on,.vp:hover{background:#c8ff00;color:#000}
+.flex1{flex:1}
+.st{font-size:11px;color:#555}
+.st.dirty{color:#f97316}.st.ok{color:#22c55e}
+.tbtn{padding:6px 13px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.t-undo{background:#222;color:#888}.t-undo:hover{background:#333;color:#fff}
+.t-save{background:#c8ff00;color:#000;font-weight:700}
+.t-lnk{background:#333;color:#ccc}.t-lnk:hover{background:#444;color:#fff}
+/* WRAP */
+.wrap{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+.sb{width:290px;background:#fff;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid #e2e2e2;overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid #e2e2e2;background:#f5f5f5;flex-shrink:0}
+.tab{flex:1;padding:9px 4px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;color:#aaa;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:.4px;transition:all .15s}
+.tab.on{color:#000;border-bottom-color:#000;background:#fff}
+.panel{display:none;flex:1;overflow-y:auto;flex-direction:column}
+.panel.on{display:flex}
+/* SECTION LIST */
+.sec-wrap{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.btn-row{display:flex;gap:6px;padding:8px}
+.sm-btn{flex:1;padding:7px;border:1.5px solid #e2e2e2;border-radius:6px;background:#fff;cursor:pointer;font-size:11px;font-weight:600;color:#666;font-family:'Inter',sans-serif;transition:all .15s}
+.sm-btn:hover{border-color:#000;color:#000;background:#f5f5f5}
+.sec-list{flex:1;overflow-y:auto;padding:4px 8px}
+.si{display:flex;align-items:center;gap:7px;padding:9px 10px;border-radius:7px;border:1.5px solid transparent;margin-bottom:3px;background:#fff;user-select:none;transition:all .15s}
+.si:hover{background:#f9f9f9;border-color:#e2e2e2}
+.si.dragover{border-color:#2563eb;background:#eff6ff}
+.si.dragging{opacity:.25}
+.dh{color:#ccc;cursor:grab;font-size:16px;line-height:1;flex-shrink:0}
+.si-ico{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+.si-nm{flex:1;font-weight:600;font-size:13px}
+.vtog{width:32px;height:18px;border-radius:9px;background:#e2e2e2;position:relative;cursor:pointer;border:none;transition:background .2s;flex-shrink:0;padding:0}
+.vtog.on{background:#000}
+.vtog::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s}
+.vtog.on::after{left:16px}
+.edb{padding:3px 8px;border:1.5px solid #e2e2e2;border-radius:4px;background:#fff;cursor:pointer;font-size:10px;font-weight:700;color:#666;font-family:'Inter',sans-serif;text-transform:uppercase;letter-spacing:.2px;transition:all .15s;flex-shrink:0}
+.edb:hover{background:#000;color:#fff;border-color:#000}
+/* SECTION EDITOR OVERLAY */
+.sec-ed{display:none;position:absolute;inset:0;background:#fff;flex-direction:column;z-index:10}
+.sec-ed.open{display:flex}
+.se-hd{display:flex;align-items:center;gap:8px;padding:11px 13px;border-bottom:1px solid #e2e2e2;background:#f5f5f5;flex-shrink:0}
+.se-back{background:none;border:none;cursor:pointer;font-size:16px;color:#888;padding:3px 7px;border-radius:4px;transition:all .15s}
+.se-back:hover{background:#e2e2e2;color:#000}
+.se-title{font-weight:700;font-size:13px}
+.se-body{flex:1;overflow-y:auto;padding:14px}
+/* FORM ELEMENTS */
+.fg{margin-bottom:13px}
+.fl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#999;margin-bottom:5px;display:block}
+.fi{width:100%;padding:9px 11px;border:1.5px solid #e2e2e2;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;background:#fff;display:block}
+.fi:focus{border-color:#000}
+textarea.fi{min-height:68px;resize:vertical;line-height:1.5}
+.divider{height:1px;background:#f0f0f0;margin:13px 0}
+.sec-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#aaa;margin-bottom:8px;display:block}
+/* COLOR PICKERS */
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.cp{display:flex;flex-direction:column;gap:4px}
+.cp-l{font-size:10px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.3px}
+.cp-row{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1.5px solid #e2e2e2;border-radius:6px;background:#fff;transition:border-color .2s}
+.cp-row:focus-within{border-color:#000}
+.cs{width:20px;height:20px;border-radius:3px;border:1.5px solid rgba(0,0,0,.1);flex-shrink:0;cursor:pointer;padding:0;-webkit-appearance:none}
+.cs::-webkit-color-swatch-wrapper{padding:0}
+.cs::-webkit-color-swatch{border:none;border-radius:2px}
+.hx{flex:1;border:none;font-size:12px;font-family:monospace;outline:none;background:transparent;text-transform:uppercase;min-width:0}
+/* FONT PREVIEW */
+.fp{margin-top:6px;padding:7px;background:#f5f5f5;border-radius:5px;font-size:17px;text-align:center;color:#888}
+/* LOGO CARD */
+.logo-card{margin:8px;padding:12px;border:1.5px solid #e2e2e2;border-radius:8px;background:#fff}
+.logo-card-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:8px}
+.logo-prev{width:100%;height:58px;background:#f5f5f5;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;overflow:hidden;position:relative}
+.logo-prev img{max-height:58px;max-width:100%;object-fit:contain;display:block}
+/* SLIDE LIST */
+.slide-row{display:flex;align-items:center;gap:8px;padding:9px;border:1.5px solid #e2e2e2;border-radius:7px;margin-bottom:6px;cursor:pointer;transition:all .15s;background:#fff}
+.slide-row:hover{border-color:#888}
+.slide-thumb{width:44px;height:32px;border-radius:4px;overflow:hidden;flex-shrink:0}
+.slide-thumb div{width:100%;height:100%}
+.slide-info{flex:1}
+.slide-nm{font-weight:600;font-size:12px}
+.slide-sub{font-size:10px;color:#aaa;margin-top:2px}
+/* MEDIA */
+.mprev{height:100px;background:#f0f0f0;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:7px}
+.mprev img{width:100%;height:100%;object-fit:cover;display:block}
+.murl{width:100%;padding:8px 10px;border:1.5px solid #e2e2e2;border-radius:6px;font-size:12px;font-family:'Inter',sans-serif;outline:none;margin-bottom:6px;transition:border-color .2s;display:block}
+.murl:focus{border-color:#000}
+/* PREVIEW AREA */
+.prev-area{flex:1;display:flex;flex-direction:column;background:#1a1a1a;overflow:hidden}
+.prev-bar{height:34px;background:#111;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #2a2a2a;flex-shrink:0}
+.prev-bar span{font-size:11px;color:#555}
+.prev-scroll{flex:1;overflow:auto;display:flex;justify-content:center;padding:12px}
+.fw{transition:width .3s}
+.fw.desktop{width:100%;max-width:1280px}
+.fw.mobile{width:390px;border-radius:24px;overflow:hidden;box-shadow:0 0 0 8px #111}
+#pframe{border:none;background:#fff;display:block;border-radius:6px}
+.fw.mobile #pframe{border-radius:0}
+.ld-msg{position:absolute;inset:0;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:13px;color:#888;border-radius:6px;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">Jersey <em>Hound</em> — Editor</div>
+  <div class="sep"></div>
+  <div class="vp-btns">
+    <button class="vp on" id="vp-d" onclick="setVP('desktop')" title="Desktop">🖥️</button>
+    <button class="vp" id="vp-m" onclick="setVP('mobile')" title="Mobile">📱</button>
+  </div>
+  <div class="flex1"></div>
+  <span class="st ok" id="st-lbl">Saved</span>
+  <button class="tbtn t-undo" onclick="doUndo()">↩ Undo</button>
+  <button class="tbtn t-save" onclick="saveNow()">💾 Save</button>
+  <a href="jersey-hounds-full.html" target="_blank" class="tbtn t-lnk">↗ Store</a>
+  <a href="jersey-hounds-admin.html" class="tbtn t-lnk">← Admin</a>
+</div>
+
+<div class="wrap">
+<!-- SIDEBAR -->
+<div class="sb">
+  <div class="tabs">
+    <div class="tab on" data-t="sections" onclick="swTab('sections')">Sections</div>
+    <div class="tab" data-t="colors"   onclick="swTab('colors')">Colors</div>
+    <div class="tab" data-t="fonts"    onclick="swTab('fonts')">Fonts</div>
+    <div class="tab" data-t="adv"      onclick="swTab('adv')">Advanced</div>
+  </div>
+
+  <!-- SECTIONS TAB -->
+  <div class="panel on" id="panel-sections">
+    <div class="sec-wrap">
+      <!-- Logo card always at top -->
+      <div class="logo-card">
+        <div class="logo-card-t">🏷️ Store Logo</div>
+        <div class="logo-prev" id="logo-prev-box">
+          <span id="logo-prev-ph" style="font-size:28px">🐕</span>
+          <img id="logo-prev-img" src="" style="display:none" onerror="this.style.display='none';document.getElementById('logo-prev-ph').style.display=''">
+        </div>
+        <input id="logo-url-input" type="url" placeholder="Paste logo image URL (PNG/SVG)..." class="fi" style="font-size:12px;margin-bottom:4px">
+        <div style="font-size:10px;color:#bbb">Transparent PNG works best · replaces 🐕 icon</div>
+      </div>
+      <div class="btn-row">
+        <button class="sm-btn" onclick="resetOrder()">↺ Reset Order</button>
+        <button class="sm-btn" onclick="showAllSecs()">👁 Show All</button>
+      </div>
+      <div class="sec-list" id="sec-list"></div>
+      <!-- Section editor panel -->
+      <div class="sec-ed" id="sec-ed">
+        <div class="se-hd">
+          <button class="se-back" onclick="closeSekEd()">←</button>
+          <span class="se-title" id="se-title">Edit Section</span>
+        </div>
+        <div class="se-body" id="se-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLORS TAB -->
+  <div class="panel" id="panel-colors" style="padding:14px;flex-direction:column">
+    <div class="sec-lbl">Brand Colors</div>
+    <div class="cg" id="cg-brand"></div>
+    <div class="divider"></div>
+    <div class="sec-lbl">Hero Gradient</div>
+    <div class="cg" id="cg-hero"></div>
+    <div class="divider"></div>
+    <div class="sec-lbl">Announcement Bar</div>
+    <div class="cg" id="cg-ann"></div>
+    <div class="divider"></div>
+    <div class="sec-lbl">Marquee Strip</div>
+    <div class="cg" id="cg-mq"></div>
+  </div>
+
+  <!-- FONTS TAB -->
+  <div class="panel" id="panel-fonts" style="padding:14px;flex-direction:column">
+    <div class="sec-lbl">Heading Font</div>
+    <div class="fg">
+      <select class="fi" id="fh" style="cursor:pointer">
+        <option value="Montserrat">Montserrat (default)</option>
+        <option value="Oswald">Oswald</option>
+        <option value="Bebas Neue">Bebas Neue</option>
+        <option value="Anton">Anton</option>
+        <option value="Barlow Condensed">Barlow Condensed</option>
+        <option value="Poppins">Poppins</option>
+        <option value="Raleway">Raleway</option>
+        <option value="Playfair Display">Playfair Display</option>
+        <option value="Exo 2">Exo 2</option>
+        <option value="Roboto Condensed">Roboto Condensed</option>
+      </select>
+      <div class="fp" id="fp-h">Jersey Hound 2026</div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec-lbl">Body Font</div>
+    <div class="fg">
+      <select class="fi" id="fb" style="cursor:pointer">
+        <option value="Inter">Inter (default)</option>
+        <option value="Roboto">Roboto</option>
+        <option value="Open Sans">Open Sans</option>
+        <option value="Lato">Lato</option>
+        <option value="DM Sans">DM Sans</option>
+        <option value="Outfit">Outfit</option>
+        <option value="Nunito">Nunito</option>
+        <option value="Jost">Jost</option>
+        <option value="Figtree">Figtree</option>
+      </select>
+      <div class="fp" id="fp-b" style="font-size:14px">Browse 40+ World Cup kits</div>
+    </div>
+  </div>
+
+  <!-- ADVANCED TAB -->
+  <div class="panel" id="panel-adv" style="padding:14px;flex-direction:column">
+    <div class="sec-lbl">Custom CSS</div>
+    <textarea class="fi" id="custom-css" placeholder="/* e.g. .hero { opacity: 0.9; } */" style="font-family:monospace;font-size:12px;height:120px;margin-bottom:14px"></textarea>
+    <div class="divider"></div>
+    <button onclick="doReset()" style="width:100%;padding:10px;border:1.5px solid #fecaca;border-radius:7px;background:#fff0f0;color:#dc2626;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:12px">⚠️ Reset to Default Theme</button>
+    <p style="font-size:11px;color:#aaa;line-height:1.65">Changes auto-save every 2 seconds. Keep your store open in another tab — it updates within 1 second.</p>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div class="prev-area">
+  <div class="prev-bar"><span>Live Preview — changes apply instantly</span></div>
+  <div class="prev-scroll">
+    <div class="fw desktop" id="fw" style="position:relative">
+      <div class="ld-msg" id="ld">Loading store…</div>
+      <iframe id="pframe" src="jersey-hounds-full.html" onload="onFrameLoad()" style="width:100%;height:calc(100vh - 82px)"></iframe>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+'use strict';
+
+// ── DEFAULT THEME ─────────────────────────────────────
+var DEF = {
+  colors:{accent:'#c8ff00',primary:'#0a0a0a',background:'#ffffff',offwhite:'#f5f5f5',heroStart:'#0a1628',heroMid:'#1a2d4a',heroEnd:'#0d3d2e',marquee:'#c8ff00',announceBg:'#0a0a0a',announceColor:'#ffffff',announceAc:'#c8ff00'},
+  fonts:{heading:'Montserrat',body:'Inter'},
+  logo:'',
+  announce:{text:'🏆 <em>World Cup 2026</em> — Free shipping over $75 · Personalise your shirt'},
+  heroSlides:[
+    {tag:"⚽ World Cup 2026",heading:"Wear Your",headingEm:"Colours.",subtext:"Shop 40+ nations. Free shipping over $75.",btn1Text:"Shop Kits →",btn1Action:"nav('kits')",btn2Text:"View Bundles",btn2Action:"nav('bundles')",bgImage:"",heroStart:"#0a1628",heroMid:"#1a2d4a",heroEnd:"#0d3d2e",imgPosX:50,imgPosY:50,imgFit:"cover"},
+    {tag:"🔥 Most Wanted",heading:"Trending",headingEm:"Right Now.",subtext:"The shirts everyone is talking about.",btn1Text:"Shop Trending →",btn1Action:"navTrending()",btn2Text:"New Arrivals",btn2Action:"nav('kits')",bgImage:"",heroStart:"#1a0a2e",heroMid:"#2d1a4a",heroEnd:"#1a0a1a",imgPosX:50,imgPosY:50,imgFit:"cover"},
+    {tag:"🏆 Classic Kits",heading:"Retro &",headingEm:"New Era.",subtext:"Iconic shirts from football history.",btn1Text:"Shop Retro →",btn1Action:"nav('retro')",btn2Text:"View All",btn2Action:"nav('kits')",bgImage:"",heroStart:"#0d2e1a",heroMid:"#1a4a2d",heroEnd:"#0a1a0d",imgPosX:50,imgPosY:50,imgFit:"cover"}
+  ],
+  sections:{announce:true,hero:true,marquee:true,featured:true,trending:true,category:true,shopbyfit:true,coming:true,retro:true,'bundles-banner':true,email:true,footer:true},
+  sectionOrder:['announce','hero','marquee','featured','trending','category','shopbyfit','coming','retro','bundles-banner','email','footer'],
+  text:{featuredH:'Featured Kits',trendingH:'Trending',categoryH:'Shop by Category',comingTag:'Coming Soon',comingH:'Tees & Croptops',retroH:'Retro / New Era',emailH:'Join Our Email List'},
+  categoryImages:{hats:'',flags:'',retro:''},
+  fitImages:{kits:'',womens:'',kids:''},
+  comingImage:'',bundleImage:'',
+  custom:{css:''}
+};
+
+var SMETA = {
+  announce:    {icon:'📢',name:'Announcement Bar'},
+  hero:        {icon:'🖼️',name:'Hero Banner'},
+  marquee:     {icon:'✨',name:'Scrolling Marquee'},
+  featured:    {icon:'⚽',name:'Featured Kits'},
+  trending:    {icon:'🔥',name:'Trending'},
+  category:    {icon:'🗂️',name:'Shop by Category'},
+  shopbyfit:   {icon:'👗',name:'Shop by Fit'},
+  coming:      {icon:'🚀',name:'Coming Soon'},
+  retro:       {icon:'🏆',name:'Retro / New Era'},
+  'bundles-banner':{icon:'🎁',name:'Bundle Deals'},
+  email:       {icon:'📧',name:'Email Signup'},
+  footer:      {icon:'📄',name:'Footer'}
+};
+
+// ── STATE ─────────────────────────────────────────────
+var T = loadT();
+var HIST = [];
+var _autoT = null;
+var _frameOk = false;
+var _activeSec = null;
+
+function loadT() {
+  try {
+    var saved = JSON.parse(localStorage.getItem('jh-theme')||'null');
+    if (!saved) return JSON.parse(JSON.stringify(DEF));
+    var out = JSON.parse(JSON.stringify(DEF));
+    ['colors','fonts','announce','sections','text','categoryImages','fitImages','custom'].forEach(function(k){
+      if (saved[k] && typeof saved[k]==='object') Object.assign(out[k], saved[k]);
+    });
+    if (saved.logo !== undefined)          out.logo = saved.logo;
+    if (saved.comingImage !== undefined)   out.comingImage = saved.comingImage;
+    if (saved.bundleImage !== undefined)   out.bundleImage = saved.bundleImage;
+    if (Array.isArray(saved.heroSlides))   out.heroSlides = saved.heroSlides;
+    if (Array.isArray(saved.sectionOrder)){
+      out.sectionOrder = saved.sectionOrder;
+      DEF.sectionOrder.forEach(function(k){ if(out.sectionOrder.indexOf(k)===-1) out.sectionOrder.push(k); });
+    }
+    return out;
+  } catch(e) { return JSON.parse(JSON.stringify(DEF)); }
+}
+
+function getT(path) {
+  var parts = path.split('.'), v = T;
+  for (var i=0;i<parts.length;i++){if(v==null)return undefined;v=v[parts[i]];}
+  return v;
+}
+function setT(path, value) {
+  HIST.push(JSON.stringify(T));
+  if(HIST.length>40) HIST.shift();
+  var parts=path.split('.'), obj=T;
+  for(var i=0;i<parts.length-1;i++){if(typeof obj[parts[i]]!=='object'||!obj[parts[i]])obj[parts[i]]={};obj=obj[parts[i]];}
+  obj[parts[parts.length-1]]=value;
+  push(); markDirty();
+}
+
+// ── PUSH TO STORE ──────────────────────────────────────
+function push() {
+  try { localStorage.setItem('jh-theme', JSON.stringify(T)); } catch(e){}
+  try { localStorage.setItem('jh-theme-ts', String(Date.now())); } catch(e){}
+  try {
+    var fr = document.getElementById('pframe');
+    if (fr && fr.contentWindow) fr.contentWindow.postMessage({type:'jh-theme-update',theme:T},'*');
+  } catch(e){}
+}
+
+function onFrameLoad() {
+  document.getElementById('ld').style.display = 'none';
+  _frameOk = true;
+  setTimeout(push, 400);
+  setTimeout(push, 1500);
+}
+
+// Listen for store saying it's ready
+window.addEventListener('message', function(e) {
+  try { if(e.data && e.data.type==='jh-ready') push(); } catch(x){}
+});
+
+// ── SAVE / UNDO ────────────────────────────────────────
+function saveNow() {
+  push();
+  var el=document.getElementById('st-lbl'); el.className='st ok'; el.textContent='Saved ✓';
+  clearTimeout(_autoT);
+}
+function markDirty() {
+  var el=document.getElementById('st-lbl'); el.className='st dirty'; el.textContent='Unsaved…';
+  clearTimeout(_autoT);
+  _autoT = setTimeout(saveNow, 2000);
+}
+function doUndo() {
+  if(!HIST.length){alert('Nothing to undo');return;}
+  T=JSON.parse(HIST.pop());
+  fullRebuild(); push(); markDirty();
+}
+function doReset() {
+  if(!confirm('Reset all theme to defaults?')) return;
+  T=JSON.parse(JSON.stringify(DEF));
+  fullRebuild(); push(); saveNow();
+}
+
+// ── TABS ──────────────────────────────────────────────
+function swTab(id) {
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.dataset.t===id);});
+  ['sections','colors','fonts','adv'].forEach(function(n){document.getElementById('panel-'+n).classList.toggle('on',n===id);});
+}
+
+// ── VIEWPORT ──────────────────────────────────────────
+function setVP(v) {
+  document.getElementById('vp-d').classList.toggle('on',v==='desktop');
+  document.getElementById('vp-m').classList.toggle('on',v==='mobile');
+  document.getElementById('fw').className='fw '+v;
+}
+
+// ── SECTION LIST ──────────────────────────────────────
+var _dragSrc = null;
+function renderSecs() {
+  var list = document.getElementById('sec-list');
+  list.innerHTML = '';
+  (T.sectionOrder||DEF.sectionOrder).forEach(function(key){
+    var m=SMETA[key]; if(!m) return;
+    var vis = T.sections[key] !== false;
+    var div = document.createElement('div');
+    div.className='si'; div.id='si_'+key; div.draggable=true;
+    div.innerHTML=
+      '<span class="dh">⠿</span>'+
+      '<span class="si-ico">'+m.icon+'</span>'+
+      '<span class="si-nm">'+m.name+'</span>'+
+      '<button class="vtog'+(vis?' on':'')+'"></button>'+
+      '<button class="edb">Edit ›</button>';
+
+    // Visibility toggle
+    div.querySelector('.vtog').addEventListener('click',function(e){
+      e.stopPropagation();
+      var on = !this.classList.contains('on');
+      this.classList.toggle('on',on);
+      T.sections[key]=on;
+      push(); markDirty();
+      highlight(key);
+    });
+    // Edit button
+    div.querySelector('.edb').addEventListener('click',function(e){
+      e.stopPropagation();
+      openSecEd(key);
+    });
+    // Drag
+    div.addEventListener('dragstart',function(e){_dragSrc=key;setTimeout(function(){div.classList.add('dragging');},0);});
+    div.addEventListener('dragend',function(){div.classList.remove('dragging');list.querySelectorAll('.si').forEach(function(s){s.classList.remove('dragover');});_dragSrc=null;});
+    div.addEventListener('dragover',function(e){e.preventDefault();if(key===_dragSrc)return;list.querySelectorAll('.si').forEach(function(s){s.classList.remove('dragover');});div.classList.add('dragover');});
+    div.addEventListener('drop',function(e){
+      e.preventDefault(); div.classList.remove('dragover');
+      if(!_dragSrc||_dragSrc===key)return;
+      HIST.push(JSON.stringify(T));
+      var o=T.sectionOrder.slice(), fi=o.indexOf(_dragSrc), ti=o.indexOf(key);
+      if(fi!==-1&&ti!==-1){o.splice(fi,1);o.splice(ti,0,_dragSrc);}
+      T.sectionOrder=o; renderSecs(); push(); markDirty();
+    });
+    list.appendChild(div);
+  });
+}
+function resetOrder(){T.sectionOrder=DEF.sectionOrder.slice();renderSecs();push();markDirty();}
+function showAllSecs(){DEF.sectionOrder.forEach(function(k){T.sections[k]=true;});renderSecs();push();markDirty();}
+function highlight(key){
+  var IDS={announce:'sec-announce',hero:'sec-hero',marquee:'sec-marquee',featured:'sec-featured',trending:'sec-trending',category:'sec-category',shopbyfit:'sec-shopbyfit',coming:'sec-coming',retro:'sec-retro','bundles-banner':'sec-bundles-banner',email:'sec-email',footer:'sec-footer'};
+  try{var fr=document.getElementById('pframe');if(fr&&fr.contentWindow)fr.contentWindow.postMessage({type:'jh-theme-highlight',sectionId:IDS[key]},'*');}catch(e){}
+}
+
+// ── SECTION EDITOR ────────────────────────────────────
+function openSecEd(key) {
+  _activeSec=key;
+  var m=SMETA[key]; if(!m)return;
+  document.getElementById('se-title').textContent=m.icon+'  '+m.name;
+  var body=document.getElementById('se-body');
+  body.innerHTML='';
+  buildSecContent(key,body);
+  document.getElementById('sec-ed').classList.add('open');
+  highlight(key);
+}
+function closeSekEd(){document.getElementById('sec-ed').classList.remove('open');_activeSec=null;}
+
+function buildSecContent(key,c) {
+  if(key==='announce'){
+    addTA(c,'Banner HTML','announce.text');
+    addDiv(c);
+    addColorGroup(c,'Colors',[{p:'colors.announceBg',l:'Background'},{p:'colors.announceColor',l:'Text'},{p:'colors.announceAc',l:'Accent'}]);
+    return;
+  }
+  if(key==='hero'){
+    buildHeroUI(c); return;
+  }
+  if(key==='marquee'){
+    addColorGroup(c,'Marquee Color',[{p:'colors.marquee',l:'Background'}]); return;
+  }
+  if(key==='featured'){ addIn(c,'Heading','text.featuredH'); return; }
+  if(key==='trending'){  addIn(c,'Heading','text.trendingH'); return; }
+  if(key==='retro'){     addIn(c,'Heading','text.retroH');    return; }
+  if(key==='email'){     addIn(c,'Heading','text.emailH');    return; }
+  if(key==='category'){
+    addIn(c,'Heading','text.categoryH'); addDiv(c);
+    addLbl(c,'Category Card Images');
+    addMedia(c,'Hats & Stickers','categoryImages.hats');
+    addMedia(c,'Flags','categoryImages.flags');
+    addMedia(c,'Scarves / Retro','categoryImages.retro');
+    return;
+  }
+  if(key==='shopbyfit'){
+    addLbl(c,'Shop by Fit Images');
+    addMedia(c,'Men (Kits)','fitImages.kits');
+    addMedia(c,'Women','fitImages.womens');
+    addMedia(c,'Kids','fitImages.kids');
+    return;
+  }
+  if(key==='coming'){
+    addIn(c,'Tag Line','text.comingTag');
+    addIn(c,'Heading','text.comingH');
+    addDiv(c);
+    addMedia(c,'Background Image','comingImage');
+    return;
+  }
+  if(key==='bundles-banner'){
+    addMedia(c,'Banner Background Image','bundleImage'); return;
+  }
+  var p=document.createElement('p');p.style.cssText='padding:20px;text-align:center;color:#aaa;font-size:13px;line-height:1.8';
+  p.innerHTML='Controlled by global theme.<br>Adjust in <strong>Colors</strong> and <strong>Fonts</strong> tabs.';
+  c.appendChild(p);
+}
+
+// ── HERO SLIDES UI ────────────────────────────────────
+function buildHeroUI(c) {
+  addLbl(c,'Slides (auto-scroll every 5s)');
+  var slides=T.heroSlides&&T.heroSlides.length?T.heroSlides:[];
+  slides.forEach(function(s,idx){
+    var row=document.createElement('div');row.className='slide-row';
+    var thumb=document.createElement('div');thumb.className='slide-thumb';
+    var bg=document.createElement('div');bg.style.background='linear-gradient(135deg,'+(s.heroStart||'#0a1628')+','+(s.heroEnd||'#0d3d2e')+')';
+    if(s.bgImage){bg.style.backgroundImage='url('+JSON.stringify(s.bgImage)+')';bg.style.backgroundSize='cover';}
+    thumb.appendChild(bg);
+    var info=document.createElement('div');info.className='slide-info';
+    info.innerHTML='<div class="slide-nm">Slide '+(idx+1)+': '+(s.heading||'(no heading)')+'</div><div class="slide-sub">'+(s.bgImage?'Image':'Gradient')+(s.videoUrl?' + video':'')+'</div>';
+    var editBtn=document.createElement('button');editBtn.className='edb';editBtn.textContent='Edit ›';
+    editBtn.onclick=(function(i){return function(e){e.stopPropagation();buildSlideEditor(c,i);};})(idx);
+    var delBtn=document.createElement('button');delBtn.className='edb';delBtn.style.cssText='color:#dc2626;border-color:#fecaca;margin-left:4px';delBtn.textContent='✕';
+    delBtn.onclick=(function(i){return function(e){e.stopPropagation();if(T.heroSlides.length<=1)return;HIST.push(JSON.stringify(T));T.heroSlides.splice(i,1);push();markDirty();c.innerHTML='';buildHeroUI(c);};})(idx);
+    row.appendChild(thumb);row.appendChild(info);row.appendChild(editBtn);
+    if(slides.length>1)row.appendChild(delBtn);
+    c.appendChild(row);
+  });
+  var addBtn=document.createElement('button');addBtn.className='sm-btn';addBtn.style.width='100%';addBtn.textContent='+ Add Slide';
+  addBtn.onclick=function(){HIST.push(JSON.stringify(T));if(!T.heroSlides)T.heroSlides=[];T.heroSlides.push({tag:'⚽ World Cup 2026',heading:'Wear Your',headingEm:'Colours.',subtext:'Shop 40+ nations.',btn1Text:'Shop Kits →',btn1Url:'',btn2Text:'View Bundles',btn2Url:'',bgImage:'',videoUrl:'',heroStart:'#0a1628',heroMid:'#1a2d4a',heroEnd:'#0d3d2e',imgPosX:50,imgPosY:50,imgFit:'cover'});push();markDirty();c.innerHTML='';buildHeroUI(c);};
+  c.appendChild(addBtn);
+  if(!slides.length){var hint=document.createElement('p');hint.style.cssText='text-align:center;color:#aaa;font-size:12px;padding:16px';hint.textContent='No slides yet. Click + Add Slide.';c.appendChild(hint);}
+}
+
+function buildSlideEditor(parentC, idx) {
+  parentC.innerHTML='';
+  var back=document.createElement('button');back.className='sm-btn';back.style.marginBottom='12px';back.textContent='← Back to Slides';
+  back.onclick=function(){parentC.innerHTML='';buildHeroUI(parentC);};
+  parentC.appendChild(back);
+  addLbl(parentC,'Slide '+(idx+1)+' Background');
+  // Image / Video
+  var s=T.heroSlides[idx];
+  var prevEl=document.createElement('div');prevEl.className='mprev';
+  if(s.bgImage){var im=document.createElement('img');im.src=s.bgImage;im.onerror=function(){this.style.opacity='.3';};prevEl.appendChild(im);}
+  else{prevEl.innerHTML='<div style="color:#bbb;text-align:center;font-size:12px">No image — gradient used</div>';}
+  parentC.appendChild(prevEl);
+  var imgIn=document.createElement('input');imgIn.type='url';imgIn.className='murl';imgIn.placeholder='Background image URL';imgIn.value=s.bgImage||'';
+  imgIn.addEventListener('input',function(){T.heroSlides[idx].bgImage=this.value.trim();prevEl.innerHTML='';if(this.value.length>4){var im=document.createElement('img');im.src=this.value;im.onerror=function(){this.style.opacity='.3';};prevEl.appendChild(im);}else{prevEl.innerHTML='<div style="color:#bbb;text-align:center;font-size:12px">No image</div>';}push();markDirty();});
+  parentC.appendChild(imgIn);
+  var vidIn=document.createElement('input');vidIn.type='url';vidIn.className='murl';vidIn.placeholder='YouTube / Vimeo URL (optional)';vidIn.value=s.videoUrl||'';
+  vidIn.addEventListener('input',function(){T.heroSlides[idx].videoUrl=this.value.trim();push();markDirty();});
+  parentC.appendChild(vidIn);
+  addDiv(parentC);
+  addLbl(parentC,'Gradient (if no image)');
+  var cgSlide=document.createElement('div');cgSlide.className='cg';cgSlide.style.marginBottom='12px';
+  [{k:'heroStart',l:'Start'},{k:'heroMid',l:'Mid'},{k:'heroEnd',l:'End'}].forEach(function(f){
+    var val=s[f.k]||'#0a1628';
+    var item=document.createElement('div');item.className='cp';
+    item.innerHTML='<div class="cp-l">'+f.l+'</div><div class="cp-row"><input type="color" class="cs" value="'+val+'"><input type="text" class="hx" maxlength="7" value="'+val.toUpperCase()+'"></div>';
+    var sw=item.querySelector('.cs'),hx=item.querySelector('.hx');
+    sw.addEventListener('input',function(){hx.value=sw.value.toUpperCase();T.heroSlides[idx][f.k]=sw.value;push();markDirty();});
+    hx.addEventListener('input',function(){if(/^#[0-9a-fA-F]{6}$/.test(hx.value)){sw.value=hx.value;T.heroSlides[idx][f.k]=hx.value;push();markDirty();}});
+    cgSlide.appendChild(item);
+  });
+  parentC.appendChild(cgSlide);
+  addDiv(parentC);
+  addLbl(parentC,'Text & Buttons');
+  [{l:'Tag (small text)',k:'tag'},{l:'Headline',k:'heading'},{l:'Headline accent (2nd line)',k:'headingEm'},{l:'Subtext',k:'subtext'},{l:'Button 1 Text',k:'btn1Text'},{l:"Button 1 Action (e.g. nav('kits') or navTrending())",k:'btn1Action'},{l:'Button 2 Text',k:'btn2Text'},{l:"Button 2 Action (e.g. nav('retro') or nav('bundles'))",k:'btn2Action'}].forEach(function(f){
+    var w=document.createElement('div');w.className='fg';
+    var lbl=document.createElement('label');lbl.className='fl';lbl.textContent=f.l;
+    var inp=document.createElement('input');inp.className='fi';inp.type='text';inp.value=T.heroSlides[idx][f.k]||'';
+    inp.addEventListener('input',(function(key){return function(){T.heroSlides[idx][key]=this.value;push();markDirty();};})(f.k));
+    w.appendChild(lbl);w.appendChild(inp);parentC.appendChild(w);
+  });
+}
+
+// ── FORM HELPERS ──────────────────────────────────────
+function addIn(parent,label,path){
+  var w=document.createElement('div');w.className='fg';
+  var l=document.createElement('label');l.className='fl';l.textContent=label;
+  var i=document.createElement('input');i.className='fi';i.type='text';i.value=getT(path)||'';
+  i.addEventListener('input',function(){setT(path,this.value);});
+  w.appendChild(l);w.appendChild(i);parent.appendChild(w);
+}
+function addTA(parent,label,path){
+  var w=document.createElement('div');w.className='fg';
+  var l=document.createElement('label');l.className='fl';l.textContent=label;
+  var ta=document.createElement('textarea');ta.className='fi';ta.value=getT(path)||'';
+  ta.addEventListener('input',function(){setT(path,this.value);});
+  w.appendChild(l);w.appendChild(ta);parent.appendChild(w);
+}
+function addDiv(p){var d=document.createElement('div');d.className='divider';p.appendChild(d);}
+function addLbl(p,t){var d=document.createElement('div');d.className='sec-lbl';d.textContent=t;p.appendChild(d);}
+
+function addMedia(parent,label,path){
+  var val=getT(path)||'';
+  var w=document.createElement('div');w.className='fg';
+  var l=document.createElement('label');l.className='fl';l.textContent=label;
+  var prev=document.createElement('div');prev.className='mprev';prev.style.height='80px';
+  if(val.length>4){var im=document.createElement('img');im.src=val;im.onerror=function(){this.style.opacity='.3';};prev.appendChild(im);}
+  else{prev.innerHTML='<div style="color:#bbb;font-size:12px">No image</div>';}
+  var inp=document.createElement('input');inp.type='url';inp.className='murl';inp.placeholder='Paste image URL';inp.value=val;
+  inp.addEventListener('input',function(){
+    setT(path,this.value.trim());
+    prev.innerHTML='';
+    if(this.value.length>4){var im=document.createElement('img');im.src=this.value;im.onerror=function(){this.style.opacity='.3';};prev.appendChild(im);}
+    else{prev.innerHTML='<div style="color:#bbb;font-size:12px">No image</div>';}
+  });
+  w.appendChild(l);w.appendChild(prev);w.appendChild(inp);parent.appendChild(w);
+}
+
+function addColorGroup(parent,label,defs){
+  if(label)addLbl(parent,label);
+  var grid=document.createElement('div');grid.className='cg';grid.style.marginBottom='12px';
+  defs.forEach(function(d){
+    var val=getT(d.p)||'#000000';
+    var item=document.createElement('div');item.className='cp';
+    item.innerHTML='<div class="cp-l">'+d.l+'</div><div class="cp-row"><input type="color" class="cs" value="'+val+'"><input type="text" class="hx" maxlength="7" value="'+val.toUpperCase()+'"></div>';
+    var sw=item.querySelector('.cs'),hx=item.querySelector('.hx');
+    sw.addEventListener('input',function(){hx.value=sw.value.toUpperCase();setT(d.p,sw.value);});
+    hx.addEventListener('input',function(){if(/^#[0-9a-fA-F]{6}$/.test(hx.value)){sw.value=hx.value;setT(d.p,hx.value);}});
+    grid.appendChild(item);
+  });
+  parent.appendChild(grid);
+}
+
+// ── COLORS TAB ────────────────────────────────────────
+function buildColors(){
+  function cg(containerId,defs){
+    var el=document.getElementById(containerId);if(!el)return;el.innerHTML='';
+    defs.forEach(function(d){
+      var val=getT(d.p)||'#000';
+      var item=document.createElement('div');item.className='cp';
+      item.innerHTML='<div class="cp-l">'+d.l+'</div><div class="cp-row"><input type="color" class="cs" value="'+val+'"><input type="text" class="hx" maxlength="7" value="'+val.toUpperCase()+'"></div>';
+      var sw=item.querySelector('.cs'),hx=item.querySelector('.hx');
+      sw.addEventListener('input',function(){hx.value=sw.value.toUpperCase();setT(d.p,sw.value);});
+      hx.addEventListener('input',function(){if(/^#[0-9a-fA-F]{6}$/.test(hx.value)){sw.value=hx.value;setT(d.p,hx.value);}});
+      el.appendChild(item);
+    });
+  }
+  cg('cg-brand',[{p:'colors.accent',l:'Accent'},{p:'colors.primary',l:'Primary'},{p:'colors.background',l:'Page BG'},{p:'colors.offwhite',l:'Alt BG'}]);
+  cg('cg-hero',[{p:'colors.heroStart',l:'Start'},{p:'colors.heroMid',l:'Mid'},{p:'colors.heroEnd',l:'End'}]);
+  cg('cg-ann',[{p:'colors.announceBg',l:'Background'},{p:'colors.announceColor',l:'Text'},{p:'colors.announceAc',l:'Accent'}]);
+  cg('cg-mq',[{p:'colors.marquee',l:'Strip Color'}]);
+}
+
+// ── FONTS TAB ─────────────────────────────────────────
+function buildFonts(){
+  var fh=document.getElementById('fh'),fb=document.getElementById('fb');
+  if(fh)fh.value=T.fonts.heading||'Montserrat';
+  if(fb)fb.value=T.fonts.body||'Inter';
+  loadGFont(T.fonts.heading);loadGFont(T.fonts.body);
+  document.getElementById('fp-h').style.fontFamily="'"+T.fonts.heading+"',sans-serif";
+  document.getElementById('fp-b').style.fontFamily="'"+T.fonts.body+"',sans-serif";
+}
+function loadGFont(f){if(!f||f==='Montserrat'||f==='Inter')return;var id='gf_'+f.replace(/ /g,'_');if(document.getElementById(id))return;var lk=document.createElement('link');lk.id=id;lk.rel='stylesheet';lk.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(f)+':wght@400;700;900&display=swap';document.head.appendChild(lk);}
+
+// ── LOGO ──────────────────────────────────────────────
+function updateLogoUI(){
+  var inp=document.getElementById('logo-url-input');
+  if(inp&&T.logo!==undefined)inp.value=T.logo||'';
+  var img=document.getElementById('logo-prev-img'),ph=document.getElementById('logo-prev-ph');
+  if(T.logo&&T.logo.length>4){if(img){img.src=T.logo;img.style.display='block';}if(ph)ph.style.display='none';}
+  else{if(img)img.style.display='none';if(ph)ph.style.display='';}
+}
+
+// ── FULL REBUILD ──────────────────────────────────────
+function fullRebuild(){
+  renderSecs();
+  buildColors();
+  buildFonts();
+  updateLogoUI();
+  var css=document.getElementById('custom-css');if(css)css.value=T.custom.css||'';
+  if(_activeSec)openSecEd(_activeSec);
+}
+
+// ── WIRE UP INPUTS ─────────────────────────────────────
+document.getElementById('logo-url-input').addEventListener('input',function(){
+  var url=this.value.trim();
+  HIST.push(JSON.stringify(T));if(HIST.length>40)HIST.shift();
+  T.logo=url;
+  updateLogoUI();
+  push();markDirty();
+});
+document.getElementById('fh').addEventListener('change',function(){
+  setT('fonts.heading',this.value);
+  loadGFont(this.value);
+  document.getElementById('fp-h').style.fontFamily="'"+this.value+"',sans-serif";
+});
+document.getElementById('fb').addEventListener('change',function(){
+  setT('fonts.body',this.value);
+  loadGFont(this.value);
+  document.getElementById('fp-b').style.fontFamily="'"+this.value+"',sans-serif";
+});
+document.getElementById('custom-css').addEventListener('input',function(){setT('custom.css',this.value);});
+
+// ── INIT ──────────────────────────────────────────────
+window.addEventListener('message',function(e){
+  try{if(e.data&&e.data.type==='jh-ready')push();}catch(x){}
+});
+fullRebuild();
+saveNow();
+</script>
+</body>
+</html>
