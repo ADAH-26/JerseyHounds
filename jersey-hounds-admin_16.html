@@ -6,6 +6,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Jersey Hound — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -168,6 +169,7 @@ body{font-family:"Inter",sans-serif;background:var(--of);color:var(--bk);min-hei
 </div>
 
 <!-- APP -->
+<div id="sb-status" style="display:none;position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;font-family:Montserrat,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.15)"></div>
 <div id="app">
 <div class="layout">
 
@@ -1332,6 +1334,241 @@ function toggleBundleVisible(i){ADMIN_BUNDLES[i].visible=ADMIN_BUNDLES[i].visibl
 function setBundlePrice(i,v){ADMIN_BUNDLES[i].bundlePrice=parseFloat(v)||120;saveBundles();}
 
 function init(){saveProds();renderDash();rProds();}
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE CONFIG — paste your credentials here after setup
+// ═══════════════════════════════════════════════════════════════════
+var SB_URL = 'https://pwumambcbryoewunkdau.supabase.co';   // e.g. https://abc123.supabase.co
+var SB_KEY = 'sb_publishable_RZPGXvCgYrYibUrmHtfyAg_k0JlRpna';
+// ═══════════════════════════════════════════════════════════════════
+
+var _sb = null;
+var _sbReady = false;
+
+function sbInit() {
+  if (!SB_URL || SB_URL.includes('YOUR_')) return false;
+  try {
+    _sb = window.supabase.createClient(SB_URL, SB_KEY);
+    _sbReady = true;
+    return true;
+  } catch(e) { console.warn('Supabase init failed:', e); return false; }
+}
+
+// ── PRODUCTS ─────────────────────────────────────────────────────────────────
+async function sbLoadProducts() {
+  if (!_sbReady) return null;
+  try {
+    var res = await _sb.from('products').select('*').order('id');
+    if (res.error) throw res.error;
+    return res.data;
+  } catch(e) { console.warn('sbLoadProducts:', e); return null; }
+}
+
+async function sbSaveProduct(p) {
+  if (!_sbReady) return;
+  try {
+    await _sb.from('products').upsert({
+      id: p.id, title: p.t, category: p.cat,
+      price: String(p.p||'0'), was_price: String(p.w||''),
+      image: p.i||'', images: p.images||[],
+      stock: p.stock||'in', trending: !!p.trending,
+      visible: p.visible!==false, description: p.description||'',
+      extra_cats: p.extraCats||[], sale_percent: p.salePercent||0,
+      img_pos_x: p.imgPosX||50, img_pos_y: p.imgPosY||50,
+      img_scale: p.imgScale||100, img_fit: p.imgFit||'cover',
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+  } catch(e) { console.warn('sbSaveProduct:', e); }
+}
+
+async function sbSaveAllProducts(prods) {
+  if (!_sbReady) return;
+  try {
+    var rows = prods.map(function(p) { return {
+      id: p.id, title: p.t, category: p.cat,
+      price: String(p.p||'0'), was_price: String(p.w||''),
+      image: p.i||'', images: p.images||[],
+      stock: p.stock||'in', trending: !!p.trending,
+      visible: p.visible!==false, description: p.description||'',
+      extra_cats: p.extraCats||[], sale_percent: p.salePercent||0,
+      img_pos_x: p.imgPosX||50, img_pos_y: p.imgPosY||50,
+      img_scale: p.imgScale||100, img_fit: p.imgFit||'cover',
+      updated_at: new Date().toISOString()
+    };});
+    await _sb.from('products').upsert(rows, { onConflict: 'id' });
+  } catch(e) { console.warn('sbSaveAllProducts:', e); }
+}
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+async function sbLoadTheme() {
+  if (!_sbReady) return null;
+  try {
+    var res = await _sb.from('theme').select('config').eq('id',1).single();
+    if (res.error) throw res.error;
+    return res.data ? res.data.config : null;
+  } catch(e) { console.warn('sbLoadTheme:', e); return null; }
+}
+
+async function sbSaveTheme(config) {
+  if (!_sbReady) return;
+  try {
+    await _sb.from('theme').upsert({
+      id: 1, config: config, updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+  } catch(e) { console.warn('sbSaveTheme:', e); }
+}
+
+// ── BUNDLES ───────────────────────────────────────────────────────────────────
+async function sbLoadBundles() {
+  if (!_sbReady) return null;
+  try {
+    var res = await _sb.from('bundles').select('*').order('sort_order');
+    if (res.error) throw res.error;
+    return res.data;
+  } catch(e) { console.warn('sbLoadBundles:', e); return null; }
+}
+
+async function sbSaveBundles(bundles) {
+  if (!_sbReady) return;
+  try {
+    var rows = bundles.map(function(b,i) { return {
+      id: b.sb_id || undefined,
+      sort_order: i, nation: b.nation,
+      kit_data: b.kit, scarf_data: b.scarf, flag_data: b.flag,
+      stock: b.stock||'in', visible: b.visible!==false,
+      bundle_price: b.bundlePrice||120,
+      updated_at: new Date().toISOString()
+    };});
+    await _sb.from('bundles').upsert(rows, { onConflict: 'id' });
+  } catch(e) { console.warn('sbSaveBundles:', e); }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ADMIN: Supabase integration
+// ═══════════════════════════════════════════════════════════════════
+
+// Override saveProds → also saves to Supabase
+var _origSaveProds = saveProds;
+saveProds = function() {
+  _origSaveProds(); // still save to localStorage as backup
+  if (_sbReady) {
+    sbSaveAllProducts(PRODS).then(function() {
+      showSbStatus('✅ Saved to cloud', 'ok');
+    }).catch(function() {
+      showSbStatus('⚠️ Cloud save failed — saved locally only', 'warn');
+    });
+  }
+};
+
+// Toast-style Supabase status indicator
+function showSbStatus(msg, type) {
+  var el = document.getElementById('sb-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.background = type==='ok' ? '#f0fdf4' : '#fef9c3';
+  el.style.color = type==='ok' ? '#16a34a' : '#854d0e';
+  el.style.display = 'block';
+  setTimeout(function(){ el.style.display='none'; }, 3000);
+}
+
+// Load products from Supabase on login (instead of just localStorage)
+async function initAdminSupabase() {
+  if (!sbInit()) {
+    showSbStatus('⚠️ Supabase not configured — using local data only', 'warn');
+    return;
+  }
+
+  showSbStatus('🔄 Loading from cloud...', 'warn');
+
+  // Load products
+  var prods = await sbLoadProducts();
+  if (prods && prods.length) {
+    // Merge: Supabase is source of truth, add any local-only products
+    var sbIds = {};
+    prods.forEach(function(p){ sbIds[p.id]=true; });
+
+    PRODS = prods.map(function(p){ return {
+      id: p.id, t: p.title, cat: p.category,
+      p: String(p.price||'0'), w: String(p.was_price||''),
+      i: p.image||'', images: p.images||[],
+      stock: p.stock||'in', trending: !!p.trending,
+      visible: p.visible!==false, description: p.description||'',
+      extraCats: p.extra_cats||[], salePercent: p.sale_percent||0,
+      imgPosX: p.img_pos_x||50, imgPosY: p.img_pos_y||50,
+      imgScale: p.img_scale||100, imgFit: p.img_fit||'cover'
+    };});
+
+    // Add any DEFAULT_PRODS that aren't in Supabase yet
+    var byId = {};
+    PRODS.forEach(function(p){ byId[p.id]=true; });
+    DEFAULT_PRODS.forEach(function(dp){
+      if (!byId[dp.id]) PRODS.push(Object.assign({},dp));
+    });
+
+    // Save the merged set back to localStorage
+    localStorage.setItem('jh-prods', JSON.stringify(PRODS));
+    nextId = Math.max.apply(null, PRODS.map(function(p){return p.id;})) + 1;
+    rProds();
+    renderDash();
+    showSbStatus('✅ Loaded ' + prods.length + ' products from cloud', 'ok');
+  } else {
+    // Supabase is empty — seed it with DEFAULT_PRODS
+    showSbStatus('🔄 Seeding cloud with products...', 'warn');
+    await sbSaveAllProducts(PRODS);
+    showSbStatus('✅ ' + PRODS.length + ' products uploaded to cloud!', 'ok');
+  }
+
+  // Load bundles
+  var buns = await sbLoadBundles();
+  if (buns && buns.length) {
+    buns.forEach(function(b,i){
+      if (ADMIN_BUNDLES[i]) {
+        Object.assign(ADMIN_BUNDLES[i], {
+          stock: b.stock||'in', visible: b.visible!==false,
+          bundlePrice: parseFloat(b.bundle_price)||120, sb_id: b.id
+        });
+      }
+    });
+    if (typeof renderBundleMgr === 'function') renderBundleMgr();
+  }
+
+  // Real-time: see changes made from another device
+  _sb.channel('admin-products')
+    .on('postgres_changes', {event:'*', schema:'public', table:'products'},
+      async function() {
+        var fresh = await sbLoadProducts();
+        if (fresh) {
+          PRODS = fresh.map(function(p){ return {
+            id:p.id, t:p.title, cat:p.category,
+            p:String(p.price||'0'), w:String(p.was_price||''),
+            i:p.image||'', images:p.images||[],
+            stock:p.stock||'in', trending:!!p.trending,
+            visible:p.visible!==false, description:p.description||'',
+            extraCats:p.extra_cats||[], salePercent:p.sale_percent||0,
+            imgPosX:p.img_pos_x||50, imgPosY:p.img_pos_y||50,
+            imgScale:p.img_scale||100, imgFit:p.img_fit||'cover'
+          };});
+          rProds();
+          showSbStatus('🔄 Updated from cloud', 'ok');
+        }
+      })
+    .subscribe();
+}
+
+// Override init() to also init Supabase
+var _origInit = init;
+init = function() {
+  _origInit();
+  initAdminSupabase().catch(function(e){ console.warn('Admin Supabase error:', e); });
+};
+
+// Override saveBundles → also saves to Supabase
+if (typeof saveBundles === 'function') {
+  var _origSaveBundles = saveBundles;
+  saveBundles = function() {
+    _origSaveBundles();
+    if (_sbReady) sbSaveBundles(ADMIN_BUNDLES);
+  };
+}
 </script>
 </body>
 </html>
