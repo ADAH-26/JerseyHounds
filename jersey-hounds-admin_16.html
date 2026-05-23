@@ -1464,8 +1464,8 @@ function showSbStatus(msg, type) {
   var el = document.getElementById('sb-status');
   if (!el) return;
   el.textContent = msg;
-  el.style.background = type==='ok' ? '#f0fdf4' : '#fef9c3';
-  el.style.color = type==='ok' ? '#16a34a' : '#854d0e';
+  el.style.background = type==='ok' ? '#16a34a' : '#f59e0b';
+  el.style.color = '#fff';
   el.style.display = 'block';
   setTimeout(function(){ el.style.display='none'; }, 3000);
 }
@@ -1569,6 +1569,74 @@ if (typeof saveBundles === 'function') {
     if (_sbReady) sbSaveBundles(ADMIN_BUNDLES);
   };
 }
+
+// ── Force sync all products to Supabase ────────────────────────────────────
+async function forceSyncAll() {
+  var btn = document.getElementById('sync-btn');
+  if (btn) { btn.textContent = '🔄 Syncing...'; btn.disabled = true; }
+  
+  try {
+    if (!_sbReady) {
+      if (!sbInit()) {
+        showSbStatus('❌ Supabase not connected — check your SB_URL and SB_KEY', 'warn');
+        if (btn) { btn.textContent = '❌ Failed'; btn.disabled = false; }
+        return;
+      }
+    }
+
+    // Test connection first
+    var test = await _sb.from('products').select('count', {count:'exact', head:true});
+    if (test.error) throw test.error;
+    
+    // Push all products
+    var rows = PRODS.map(function(p) { return {
+      id: p.id, title: p.t, category: p.cat,
+      price: String(p.p||'0'), was_price: String(p.w||''),
+      image: p.i||'', images: p.images||[],
+      stock: p.stock||'in', trending: !!p.trending,
+      visible: p.visible!==false, description: p.description||'',
+      extra_cats: p.extraCats||[], sale_percent: p.salePercent||0,
+      img_pos_x: p.imgPosX||50, img_pos_y: p.imgPosY||50,
+      img_scale: p.imgScale||100, img_fit: p.imgFit||'cover',
+      updated_at: new Date().toISOString()
+    };});
+
+    // Upload in batches of 50
+    for (var i = 0; i < rows.length; i += 50) {
+      var batch = rows.slice(i, i+50);
+      var res = await _sb.from('products').upsert(batch, {onConflict:'id'});
+      if (res.error) throw res.error;
+      if (btn) btn.textContent = '🔄 ' + Math.min(i+50, rows.length) + '/' + rows.length;
+    }
+
+    showSbStatus('✅ All ' + PRODS.length + ' products synced to cloud!', 'ok');
+    if (btn) { btn.textContent = '✅ Synced!'; setTimeout(function(){ btn.textContent='☁️ Sync to Cloud'; btn.disabled=false; }, 3000); }
+
+  } catch(e) {
+    console.error('Sync error:', e);
+    showSbStatus('❌ Sync failed: ' + (e.message||e), 'warn');
+    if (btn) { btn.textContent = '❌ Failed — try again'; btn.disabled = false; }
+  }
+}
+
+// Auto-sync after every save
+var _origSP2 = saveProds;
+saveProds = function() {
+  _origSP2();
+  // Push just the changed products
+  if (_sbReady) {
+    sbSaveAllProducts(PRODS)
+      .then(function(){ showSbStatus('✅ Saved to cloud', 'ok'); })
+      .catch(function(e){ showSbStatus('⚠️ Save failed: ' + (e.message||''), 'warn'); });
+  }
+};
+
+// Call forceSyncAll on first login to seed Supabase
+var _afterLogin = setTimeout(function() {
+  if (_sbReady && PRODS.length > 0) {
+    forceSyncAll();
+  }
+}, 2000);
 </script>
 </body>
 </html>
