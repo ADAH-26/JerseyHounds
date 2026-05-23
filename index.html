@@ -777,6 +777,27 @@ async function sbSaveBundles(bundles) {
   } catch(e) { console.warn('sbSaveBundles:', e); }
 }
 
+
+// ── Store: load from Supabase on startup ─────────────────────────────────────
+function applySupabaseProducts(prods) {
+  if (!prods || !prods.length) return;
+  prods.forEach(function(p) {
+    REGISTRY[p.id] = {
+      id: p.id, t: p.title, cat: p.category,
+      p: String(p.price||'0'), w: String(p.was_price||''),
+      i: p.image||'', images: p.images||[],
+      stock: p.stock||'in', trending: !!p.trending,
+      visible: p.visible!==false, description: p.description||'',
+      extraCats: p.extra_cats||[], salePercent: p.sale_percent||0,
+      imgPosX: p.img_pos_x||50, imgPosY: p.img_pos_y||50,
+      imgScale: p.img_scale||100, imgFit: p.img_fit||'cover'
+    };
+  });
+  if (typeof refreshAll === 'function') refreshAll();
+  if (typeof buildHeroSlides === 'function') buildHeroSlides(null);
+  if (typeof renderBundles === 'function') renderBundles();
+}
+
 // ── Store: load from Supabase on startup ─────────────────────────────────────
 async function initSupabase() {
   if (!sbInit()) return; // not configured yet
@@ -2200,6 +2221,40 @@ initSupabase = async function() {
     showBanner('❌ Cloud connection failed', 'err');
   }
 };
+
+// ── Store polling: check Supabase every 5 seconds for changes ────────────────
+var _lastProdUpdate = '';
+var _lastThemeUpdate = '';
+
+async function pollSupabase() {
+  if (!_sbReady) return;
+  try {
+    // Check products
+    var res = await _sb.from('products').select('*').order('updated_at', {ascending:false}).limit(1);
+    if (res.data && res.data.length) {
+      var latest = res.data[0].updated_at;
+      if (latest && latest !== _lastProdUpdate) {
+        _lastProdUpdate = latest;
+        var all = await sbLoadProducts();
+        if (all && all.length) applySupabaseProducts(all);
+      }
+    }
+    // Check theme
+    var tres = await _sb.from('theme').select('updated_at, config').eq('id',1).single();
+    if (tres.data) {
+      var tlast = tres.data.updated_at;
+      if (tlast && tlast !== _lastThemeUpdate) {
+        _lastThemeUpdate = tlast;
+        if (tres.data.config && typeof applyTheme === 'function') {
+          applyTheme(tres.data.config);
+        }
+      }
+    }
+  } catch(e) {}
+}
+
+// Start polling every 5 seconds
+setInterval(pollSupabase, 5000);
 </script>
 </body>
 </html>
