@@ -351,6 +351,7 @@ footer{background:var(--off);padding:36px 32px 18px;border-top:1px solid var(--g
 </style>
 </head>
 <body>
+<div id="sb-banner" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;padding:12px 24px;border-radius:10px;font-family:Montserrat,sans-serif;font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(0,0,0,.2);display:none;text-align:center;min-width:280px"></div>
 
 <!-- LANG -->
 <div id="lang-ov">
@@ -2172,6 +2173,33 @@ function showSupportPage(page){
 }
 function trackOrder(){var n=document.getElementById('track-input').value.trim();var r=document.getElementById('track-result');if(!n){r.textContent='Please enter your order number.';return;}r.innerHTML='Tracking for <strong>'+n+'</strong>: Please allow 24 hours from your order confirmation email. Email <a href="mailto:hello@jerseyhounds.com" style="color:#000;font-weight:700">hello@jerseyhounds.com</a> if you need help.';}
 function submitContact(){var n=document.getElementById('ct-name').value.trim(),e=document.getElementById('ct-email').value.trim(),m=document.getElementById('ct-msg').value.trim();if(!n||!e||!m){alert('Please fill in your name, email and message.');return;}document.getElementById('ct-sent').style.display='block';document.getElementById('ct-name').value='';document.getElementById('ct-email').value='';document.getElementById('ct-msg').value='';}
+
+function showBanner(msg, type) {
+  var el = document.getElementById('sb-banner');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.background = type === 'ok' ? '#16a34a' : type === 'warn' ? '#f59e0b' : '#dc2626';
+  el.style.color = '#fff';
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.style.display='none'; }, 6000);
+}
+
+// Override initSupabase to show banner
+var _origInitSB = initSupabase;
+initSupabase = async function() {
+  showBanner('🔄 Connecting to cloud...', 'warn');
+  try {
+    await _origInitSB();
+    if (_sbReady) {
+      showBanner('✅ Connected to cloud! Products loaded.', 'ok');
+    } else {
+      showBanner('⚠️ Supabase not configured yet', 'warn');
+    }
+  } catch(e) {
+    showBanner('❌ Cloud connection failed', 'err');
+  }
+};
 </script>
 </body>
 </html>
